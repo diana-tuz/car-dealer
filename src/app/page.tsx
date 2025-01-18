@@ -1,101 +1,117 @@
-import Image from "next/image";
+'use client'
+
+import { SelectBlock } from '@/components/SelectBlock'
+import { SelectBlockPropsType } from '@/components/SelectBlock/types'
+import { generateYears } from '@/constants'
+import { icons } from '@/icons'
+import { CarType } from '@/types'
+
+import { fetchMakes } from '@/utils/httpClient'
+import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [vehiclesData, setVehiclesData] = useState<CarType[]>([])
+  const [selectedId, setSelectedId] = useState('')
+  const [selectedMake, setSelectedMake] = useState('')
+  const [displayMakesList, setDisplayMakesList] = useState(false)
+  const [makeValue, setMakeValue] = useState('')
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const [selectedYear, setSelectedYear] = useState('')
+  const [displayYearsList, setDisplayYearsList] = useState(false)
+  const [yearValue, setYearValue] = useState('')
+
+  useEffect(() => {
+    const loadVehicles = async () => {
+      try {
+        const makes = await fetchMakes()
+        setVehiclesData(makes)
+      } catch (error) {
+        console.error('Error loading vehicle makes:', error)
+      }
+    }
+    loadVehicles()
+  }, [])
+
+  const onSelectMake = (make: string, id: string) => {
+    setSelectedMake(make)
+    setSelectedId(id)
+    toggleMakesList()
+  }
+
+  const toggleMakesList = () => {
+    if (!displayMakesList) {
+      setSelectedMake('')
+      setSelectedId('')
+      setMakeValue('')
+    }
+    setDisplayMakesList(!displayMakesList)
+  }
+
+  const toggleYearList = () => {
+    if (!displayYearsList) {
+      setSelectedYear('')
+      setYearValue('')
+    }
+    setDisplayYearsList(!displayYearsList)
+  }
+
+  const filteredMakes = makeValue
+    ? vehiclesData.filter(({ MakeName }) =>
+        MakeName.toLowerCase().includes(makeValue.toLowerCase().trim()),
+      )
+    : vehiclesData
+
+  const years = generateYears(2015)
+
+  const makeBlock: SelectBlockPropsType = {
+    displayList: displayMakesList,
+    list: filteredMakes,
+    placeholder: !selectedMake.length ? 'Choose make' : selectedMake,
+    setValue: setMakeValue,
+    toggleList: toggleMakesList,
+    value: !!selectedMake ? selectedMake : makeValue || '',
+    onSelectMake,
+    variant: 'make',
+  }
+
+  const onSelectYear = (year: string) => {
+    setSelectedYear(year)
+    toggleYearList()
+  }
+
+  const yearsBlock: SelectBlockPropsType = {
+    displayList: displayYearsList,
+    list: years,
+    placeholder: !selectedYear.length ? 'Choose year' : selectedYear.toString(),
+    setValue: setYearValue,
+    toggleList: toggleYearList,
+    value: !!selectedYear.length ? selectedYear : yearValue || '',
+    onSelectYear,
+    variant: 'year',
+  }
+
+  const disabled = !selectedId || !selectedYear
+
+  return (
+    <section className="flex flex-col space-y-10 w-full justify-center items-center min-h-screen p-4">
+      <div className="flex justify-center items-center">
+        <h1 className="text-text text-3xl">{"Let's choose a car for you!"}</h1>
+        <img src={icons.carSmile} className="w-[15%]" />
+      </div>
+      <div className="flex flex-col space-y-10 p-[50px] items-center bg-white rounded-lg shadow-md ">
+        <div className="flex flex-col sm:space-x-20 sm:flex-row">
+          <SelectBlock {...makeBlock} />
+          <SelectBlock {...yearsBlock} />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+
+        <Link
+          href={disabled ? '/' : `/result/${selectedId}/${selectedYear}`}
+          className={` pr-10 pl-10 pt-3 pb-3 rounded-[8px] mb-10  ease-in-out ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-accent hover:bg-primary cursor-pointer'}`}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+          {'Next'}
+        </Link>
+      </div>
+    </section>
+  )
 }
